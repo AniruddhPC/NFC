@@ -104,9 +104,28 @@ const deleteDocument = async (req, res) => {
   }
 };
 
+// @desc    Get unique custom categories for a tag (user-created "Other" categories)
+// @route   GET /api/documents/tag/:tagId/categories
+// @access  Public
+const getTagCategories = async (req, res) => {
+  try {
+    const tagId = req.params.tagId.toUpperCase();
+    const builtInCategories = ['vehicle', 'medical', 'emergency', 'identity', 'general'];
+    const categories = await Document.distinct('category', { tagId });
+    // Return only custom categories (user-created via "Other")
+    const customCategories = categories.filter(
+      (cat) => cat && !builtInCategories.includes(cat.toLowerCase())
+    );
+    res.json({ customCategories, allCategories: categories });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   uploadDocument,
   getUserDocuments,
   getTagDocumentsPublic,
   deleteDocument,
+  getTagCategories,
 };

@@ -21,8 +21,9 @@ const documentSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['vehicle', 'medical', 'emergency', 'identity', 'general'],
       default: 'general',
+      trim: true,
+      lowercase: true,
     },
     originalName: {
       type: String,

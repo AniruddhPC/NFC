@@ -24,6 +24,7 @@ export const DocumentUpload = ({ tagId = 'TAG001', onDocumentChange }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('vehicle');
+  const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -75,7 +76,14 @@ export const DocumentUpload = ({ tagId = 'TAG001', onDocumentChange }) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('title', title.trim());
-      formData.append('category', category);
+      // Use the custom category name when "other" is selected
+      const finalCategory = category === 'other' ? customCategory.trim().toLowerCase() : category;
+      if (category === 'other' && !customCategory.trim()) {
+        setError('Please enter a custom context/category name.');
+        setUploading(false);
+        return;
+      }
+      formData.append('category', finalCategory);
       formData.append('description', description.trim());
       formData.append('tagId', tagId);
 
@@ -83,6 +91,7 @@ export const DocumentUpload = ({ tagId = 'TAG001', onDocumentChange }) => {
       setMessage(res.message);
       setSelectedFile(null);
       setTitle('');
+      setCustomCategory('');
       setDescription('');
       // Reset file input
       const fileInput = document.getElementById('file-upload-input');
@@ -223,8 +232,28 @@ export const DocumentUpload = ({ tagId = 'TAG001', onDocumentChange }) => {
                 <option value="emergency">Emergency (Evacuation / Incident Contacts)</option>
                 <option value="identity">Identity (ID Card / Passport / License)</option>
                 <option value="general">General Document</option>
+                <option value="other">Other (Custom Context)</option>
               </select>
             </div>
+
+            {category === 'other' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Custom Context Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Warranty, Academic, Travel, Pet Info"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:border-sky-500 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  This name will appear as a new Target Function option on the context form.
+                </p>
+              </div>
+            )}
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-300 mb-1">

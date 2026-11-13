@@ -17,7 +17,6 @@ import {
   Sparkles,
   ExternalLink,
   Save,
-  Car,
   Activity,
   AlertTriangle,
   PhoneCall,
@@ -36,7 +35,7 @@ export const Dashboard = () => {
   const [error, setError] = useState('');
 
   // Domain information form state
-  const [docType, setDocType] = useState('vehicle_details');
+  const [docType, setDocType] = useState('medical_information');
   const [docData, setDocData] = useState({});
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [savingDoc, setSavingDoc] = useState(false);
@@ -292,7 +291,6 @@ export const Dashboard = () => {
           {/* Sub Navigation */}
           <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
             {[
-              { id: 'vehicle_details', label: 'Vehicle Details', icon: Car },
               { id: 'medical_information', label: 'Medical Information', icon: Activity },
               { id: 'emergency', label: 'Emergency Protocol', icon: AlertTriangle },
               { id: 'contact', label: 'Contact vCard', icon: PhoneCall },
@@ -321,74 +319,6 @@ export const Dashboard = () => {
           ) : (
             <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl max-w-3xl">
               <form onSubmit={handleSaveDocument} className="space-y-4">
-                {/* VEHICLE DETAILS */}
-                {docType === 'vehicle_details' && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-base text-white">Vehicle Information</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Registration Number</label>
-                        <input
-                          type="text"
-                          value={docData.vehicle?.registrationNumber || ''}
-                          onChange={(e) =>
-                            setDocData((prev) => ({
-                              ...prev,
-                              vehicle: { ...prev.vehicle, registrationNumber: e.target.value },
-                            }))
-                          }
-                          placeholder="e.g. CA-9NFC-2026"
-                          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2 text-sm font-mono focus:border-sky-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Vehicle Model</label>
-                        <input
-                          type="text"
-                          value={docData.vehicle?.model || ''}
-                          onChange={(e) =>
-                            setDocData((prev) => ({
-                              ...prev,
-                              vehicle: { ...prev.vehicle, model: e.target.value },
-                            }))
-                          }
-                          placeholder="e.g. Tesla Model Y"
-                          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2 text-sm focus:border-sky-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Owner Name</label>
-                        <input
-                          type="text"
-                          value={docData.vehicle?.owner || ''}
-                          onChange={(e) =>
-                            setDocData((prev) => ({
-                              ...prev,
-                              vehicle: { ...prev.vehicle, owner: e.target.value },
-                            }))
-                          }
-                          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2 text-sm focus:border-sky-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Insurance Status</label>
-                        <input
-                          type="text"
-                          value={docData.vehicle?.insuranceStatus || ''}
-                          onChange={(e) =>
-                            setDocData((prev) => ({
-                              ...prev,
-                              vehicle: { ...prev.vehicle, insuranceStatus: e.target.value },
-                            }))
-                          }
-                          placeholder="Active"
-                          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2 text-sm focus:border-sky-500 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* MEDICAL INFORMATION */}
                 {docType === 'medical_information' && (
                   <div className="space-y-4">

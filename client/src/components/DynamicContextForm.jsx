@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from '../hooks/useLocation';
 import { useAuth } from '../context/AuthContext';
+import { documentApi } from '../api/documentApi';
 import DurationSelector from './DurationSelector';
 import { FUNCTION_OPTIONS, ACCESS_LEVELS } from '../utils/constants';
 import {
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const {
     coordinates,
     status: locStatus,
@@ -30,16 +31,29 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
     validateCoordinates,
   } = useLocation();
 
+  // Custom categories from user's uploaded documents
+  const [customCategories, setCustomCategories] = useState([]);
+
+  // Fetch custom categories from uploaded documents (for logged-in users)
+  useEffect(() => {
+    const fetchCustomCategories = async () => {
+      try {
+        const data = await documentApi.getTagCategories(tagId);
+        setCustomCategories(data.customCategories || []);
+      } catch (err) {
+        // Silently fail — custom categories are optional
+        console.warn('Could not fetch custom categories:', err);
+      }
+    };
+    if (isAuthenticated) {
+      fetchCustomCategories();
+    }
+  }, [tagId, isAuthenticated]);
+
   // Extract config fields, functions, access levels
-  const fields = tagConfig?.fields || [
+  // Filter out "intent" field — we only use Target Function now
+  const fields = (tagConfig?.fields || [
     { name: 'location', label: 'Location', type: 'location', required: false },
-    {
-      name: 'intent',
-      label: 'Intent / Purpose',
-      type: 'dropdown',
-      required: true,
-      options: ['Emergency', 'Medical', 'Vehicle', 'Contact', 'Personal'],
-    },
     {
       name: 'accessLevel',
       label: 'Access Level',
@@ -47,7 +61,7 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
       required: true,
       options: ['Public', 'Authorized Users', 'Owner Only'],
     },
-  ];
+  ]).filter((f) => f.name !== 'intent');
 
   const allowedFunctions =
     tagConfig?.functions && tagConfig.functions.length > 0
@@ -149,7 +163,7 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
       time: new Date().toISOString(),
       personId: user?.personId || 'VISITOR',
       accessLevel: selectedAccess,
-      intent: formValues.intent || selectedFunction,
+      intent: selectedFunction,
     };
 
     // Ensure location object is properly formatted if present
@@ -160,19 +174,8 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
       };
     }
 
-    // Map intent to function if user selected an intent dropdown
-    let targetFunction = selectedFunction;
-    if (formValues.intent) {
-      const intentLower = String(formValues.intent).toLowerCase();
-      if (intentLower.includes('emergency')) targetFunction = 'emergency';
-      else if (intentLower.includes('medic')) targetFunction = 'medical_information';
-      else if (intentLower.includes('vehic')) targetFunction = 'vehicle_details';
-      else if (intentLower.includes('contact')) targetFunction = 'contact';
-      else if (intentLower.includes('person')) targetFunction = 'personal_information';
-    }
-
     const payload = {
-      function: targetFunction,
+      function: selectedFunction,
       duration: Number(duration),
       context: contextPayload,
     };
@@ -333,10 +336,25 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
     }
   };
 
-  // Filter FUNCTION_OPTIONS based on tagConfig.functions
+  // Build Target Function options:
+  // Start with the built-in options from tagConfig.functions
   const displayFunctionOptions = FUNCTION_OPTIONS.filter((f) =>
     allowedFunctions.includes(f.id)
   );
+
+  // Add custom categories from user's uploaded documents (logged-in users only)
+  const customFunctionOptions = customCategories
+    .filter((cat) => !allowedFunctions.includes(cat))
+    .map((cat) => ({
+      id: cat,
+      label: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' '),
+      description: `Custom context from uploaded documents`,
+      icon: 'FileText',
+      badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+      isCustom: true,
+    }));
+
+  const allFunctionOptions = [...displayFunctionOptions, ...customFunctionOptions];
 
   // Filter ACCESS_LEVELS based on tagConfig.accessLevels
   const displayAccessLevels = ACCESS_LEVELS.filter((a) =>
@@ -364,7 +382,7 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
         </div>
       </div>
 
-      {/* DYNAMIC FIELDS: Generated directly from tagConfig.fields */}
+      {/* DYNAMIC FIELDS: Generated directly from tagConfig.fields (excluding intent) */}
       <div className="space-y-4">
         <div className="text-xs uppercase font-mono tracking-wider text-slate-400 font-bold border-b border-slate-800 pb-2">
           Required / Configured Context Parameters
@@ -372,15 +390,15 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
         {fields.map((field) => renderDynamicField(field))}
       </div>
 
-      {/* Function Selection (if multiple allowed on this tag) */}
-      {displayFunctionOptions.length > 1 && (
+      {/* Target Function Selection */}
+      {allFunctionOptions.length > 0 && (
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
             <Layers className="w-4 h-4 text-sky-400" />
             <span>Target Function</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {displayFunctionOptions.map((func) => {
+            {allFunctionOptions.map((func) => {
               const isSelected = selectedFunction === func.id;
               return (
                 <button
@@ -394,7 +412,14 @@ export const DynamicContextForm = ({ tagId, tagConfig, onActivate, loading }) =>
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-xs text-slate-100">{func.label}</span>
+                    <span className="font-semibold text-xs text-slate-100">
+                      {func.label}
+                      {func.isCustom && (
+                        <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-teal-500/15 text-teal-400 rounded-full font-medium">
+                          Custom
+                        </span>
+                      )}
+                    </span>
                     {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" />}
                   </div>
                 </button>

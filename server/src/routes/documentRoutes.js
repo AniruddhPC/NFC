@@ -6,6 +6,7 @@ const {
   getUserDocuments,
   getTagDocumentsPublic,
   deleteDocument,
+  getTagCategories,
 } = require('../controllers/documentController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -17,6 +18,9 @@ router.get('/', protect, getUserDocuments);
 
 // Get documents for tag (Public)
 router.get('/tag/:tagId', getTagDocumentsPublic);
+
+// Get unique custom categories for a tag (Public)
+router.get('/tag/:tagId/categories', getTagCategories);
 
 // Delete document (Private)
 router.delete('/:id', protect, deleteDocument);

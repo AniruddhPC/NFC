@@ -28,4 +28,10 @@ export const documentApi = {
     const response = await api.delete(`/documents/${id}`);
     return response.data;
   },
+
+  // Get custom categories for a tag
+  getTagCategories: async (tagId = 'TAG001') => {
+    const response = await api.get(`/documents/tag/${tagId}/categories`);
+    return response.data;
+  },
 };
