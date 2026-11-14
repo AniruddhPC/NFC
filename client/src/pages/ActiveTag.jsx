@@ -29,6 +29,7 @@ export const ActiveTag = ({ state, tagId, onStateChange }) => {
   const [dataError, setDataError] = useState('');
   const [remainingSec, setRemainingSec] = useState(state.remainingSeconds || 0);
   const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState('');
 
   // Synchronize and run countdown
   useEffect(() => {
@@ -80,11 +81,12 @@ export const ActiveTag = ({ state, tagId, onStateChange }) => {
 
   const handleDeactivate = async () => {
     setDeactivating(true);
+    setDeactivateError('');
     try {
       await tagApi.deactivateTag(tagId);
       if (onStateChange) onStateChange();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to deactivate tag.');
+      setDeactivateError(err.response?.data?.message || 'Failed to deactivate tag.');
     } finally {
       setDeactivating(false);
     }
@@ -192,6 +194,13 @@ export const ActiveTag = ({ state, tagId, onStateChange }) => {
             </button>
           )}
         </div>
+
+        {deactivateError && (
+          <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{deactivateError}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Data Section */}

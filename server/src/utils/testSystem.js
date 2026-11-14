@@ -136,20 +136,48 @@ async function runTests() {
     console.log('✔ Registration:', vehicleRes.data.data.registrationNumber);
     console.log('✔ Model:', vehicleRes.data.data.model);
 
-    // 9. Wait for Expiration (4s duration)
-    console.log('\n[Test 9] Waiting 5 seconds for temporary context to expire...');
-    await sleep(5000);
+    // 9. Test Manual Tag Reset / Deactivation (POST /api/tags/TAG001/deactivate) by Authenticated User
+    console.log('\n[Test 9] Testing Manual Tag Reset / Deactivation by Authenticated User...');
+    const deactivateRes = await apiRequest('/tags/TAG001/deactivate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!deactivateRes.ok) {
+      throw new Error(`Tag deactivation failed: ${JSON.stringify(deactivateRes.data)}`);
+    }
+    console.log('✔ Tag Reset Succeeded:', deactivateRes.data.message);
+    console.log('✔ State After Reset:', deactivateRes.data.state.status);
+    if (deactivateRes.data.state.status !== 'configuration') {
+      throw new Error(`Expected tag status to be 'configuration', got ${deactivateRes.data.state.status}`);
+    }
+
+    // 10. Re-activate for 3s to test lazy auto-expiration
+    console.log('\n[Test 10] Re-activating for 3 seconds to verify lazy auto-expiration...');
+    await apiRequest('/tags/TAG001/activate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: {
+        function: 'vehicle_details',
+        duration: 3,
+        context: {
+          intent: 'vehicle_details',
+          accessLevel: 'public',
+        },
+      },
+    });
+    console.log('✔ Waiting 4 seconds for temporary context to expire...');
+    await sleep(4000);
 
     const expiredState = await apiRequest('/tags/TAG001/state');
-    console.log('✔ Third Tap Expiration Status:', expiredState.data.status);
+    console.log('✔ Lazy Expiration Status:', expiredState.data.status);
     if (expiredState.data.status !== 'configuration') {
       throw new Error(`Expected tag to expire back to 'configuration', got ${expiredState.data.status}`);
     }
     console.log('✔ AUTHORITATIVE EXPIRATION VERIFIED (Reverted to Input Form mode without background cron!)');
 
-    // 10. Clean up uploaded test document
+    // 11. Clean up uploaded test document
     if (uploadedDocId) {
-      console.log('\n[Test 10] Cleaning up uploaded test document...');
+      console.log('\n[Test 11] Cleaning up uploaded test document...');
       await apiRequest(`/documents/${uploadedDocId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },

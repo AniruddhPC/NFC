@@ -24,6 +24,10 @@ const registerUser = async (req, res) => {
       role: role || 'owner',
     });
 
+    // In single-tag system, link primary tag to the user
+    const Tag = require('../models/Tag');
+    await Tag.updateMany({ tagId: 'TAG001' }, { $set: { ownerId: user._id } });
+
     res.status(201).json({
       token: generateToken(user._id),
       user: {

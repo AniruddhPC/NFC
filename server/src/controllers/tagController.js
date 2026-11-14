@@ -14,8 +14,8 @@ const {
 // @access  Private
 const getTags = async (req, res) => {
   try {
-    const query = req.user.role === 'admin' ? {} : { ownerId: req.user._id };
-    const tags = await Tag.find(query).sort({ createdAt: -1 });
+    // In normal user single-tag mode, primary tags are accessible to authenticated users
+    const tags = await Tag.find({}).sort({ createdAt: -1 });
 
     // Evaluate state dynamically for each tag
     const evaluatedTags = await Promise.all(
@@ -61,9 +61,7 @@ const getTagById = async (req, res) => {
       permanentUrl: tag.permanentUrl,
       defaultFunction: tag.defaultFunction,
       configuration: tag.configuration,
-      isOwner: req.user
-        ? tag.ownerId.toString() === req.user._id.toString() || req.user.role === 'admin'
-        : false,
+      isOwner: !!req.user,
       state,
     });
   } catch (error) {
@@ -141,14 +139,12 @@ const activateTag = async (req, res) => {
       return res.status(404).json({ message: `Tag '${tagId}' not found.` });
     }
 
-    // Check ownership if user is logged in
-    const isOwnerOrAdmin =
-      req.user &&
-      (tag.ownerId.toString() === req.user._id.toString() || req.user.role === 'admin');
+    // Check ownership: any authenticated user is authorized in this normal user system
+    const isOwnerOrAdmin = !!req.user;
 
     // If tag requires authenticated owner only
     if (tag.activeState?.accessLevel === 'owner_only' && !isOwnerOrAdmin) {
-      return res.status(403).json({ message: 'Only the tag owner can modify this tag.' });
+      return res.status(403).json({ message: 'Only an authenticated user / tag owner can modify this tag.' });
     }
 
     // Validate payload against tag's dynamic configuration via Context Engine
@@ -201,9 +197,9 @@ const activateTag = async (req, res) => {
   }
 };
 
-// @desc    Deactivate tag context manually
+// @desc    Deactivate tag context manually (Reset Tag)
 // @route   POST /api/tags/:tagId/deactivate
-// @access  Private (Owner or Admin)
+// @access  Private (Authenticated User / Tag Owner)
 const deactivateTag = async (req, res) => {
   try {
     const tagId = req.params.tagId.toUpperCase();
@@ -213,12 +209,8 @@ const deactivateTag = async (req, res) => {
       return res.status(404).json({ message: `Tag '${tagId}' not found.` });
     }
 
-    const isOwnerOrAdmin =
-      req.user &&
-      (tag.ownerId.toString() === req.user._id.toString() || req.user.role === 'admin');
-
-    if (!isOwnerOrAdmin) {
-      return res.status(403).json({ message: 'Only the tag owner or admin can deactivate this tag.' });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required to reset this tag.' });
     }
 
     tag.activeState = null;
@@ -266,12 +258,10 @@ const getTagFunctionData = async (req, res) => {
       });
     }
 
-    // Access control evaluation
+    // Access control evaluation: any authenticated user is treated as authorized
     const accessLevel = evaluated.accessLevel?.toLowerCase() || 'public';
-    const isOwnerOrAdmin =
-      req.user &&
-      (tag.ownerId.toString() === req.user._id.toString() || req.user.role === 'admin');
     const isAuthenticated = !!req.user;
+    const isOwnerOrAdmin = !!req.user;
 
     if (accessLevel === 'owner_only' && !isOwnerOrAdmin) {
       return res.status(403).json({

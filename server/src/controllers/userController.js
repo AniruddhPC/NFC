@@ -12,7 +12,8 @@ const PersonalInformation = require('../models/PersonalInformation');
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-    const tags = await Tag.find({ ownerId: req.user._id });
+    // In normal user single-tag mode, return registered tag(s)
+    const tags = await Tag.find({}).sort({ createdAt: -1 });
 
     res.json({
       user,
@@ -77,9 +78,9 @@ const getTagDocuments = async (req, res) => {
       return res.status(404).json({ message: `Tag '${tagId}' not found.` });
     }
 
-    // Verify ownership or admin
-    if (tag.ownerId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to view documents for this tag.' });
+    // Verify authenticated user
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required to view documents for this tag.' });
     }
 
     const [vehicle, medical, emergency, contact, personal] = await Promise.all([
@@ -117,9 +118,9 @@ const saveTagDocument = async (req, res) => {
       return res.status(404).json({ message: `Tag '${tagId}' not found.` });
     }
 
-    // Verify ownership or admin
-    if (tag.ownerId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to modify documents for this tag.' });
+    // Verify authenticated user
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required to modify documents for this tag.' });
     }
 
     let document = null;
