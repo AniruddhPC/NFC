@@ -38,6 +38,7 @@ export const formatFunctionName = (funcKey) => {
     case 'personal_information':
       return 'Personal Information';
     default:
-      return funcKey || 'Configuration';
+      if (!funcKey) return 'Configuration';
+      return funcKey.charAt(0).toUpperCase() + funcKey.slice(1).replace(/_/g, ' ');
   }
 };

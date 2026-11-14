@@ -14,10 +14,9 @@ const validateDynamicContext = (tag, { function: selectedFunction, duration, con
           'personal_information',
         ];
 
-  if (!selectedFunction || !allowedFunctions.includes(selectedFunction)) {
-    throw new Error(
-      `Invalid function '${selectedFunction}'. Allowed functions for this tag: ${allowedFunctions.join(', ')}`
-    );
+  // Allow built-in functions as well as user-created custom upload categories (e.g. 'student id')
+  if (!selectedFunction || typeof selectedFunction !== 'string' || !selectedFunction.trim()) {
+    throw new Error('A valid target function or custom category is required.');
   }
 
   const durationNum = Number(duration);

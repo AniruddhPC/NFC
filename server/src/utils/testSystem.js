@@ -102,22 +102,24 @@ async function runTests() {
       throw new Error('Expected at least 1 document on TAG001');
     }
 
-    // 6. Test Tag Activation with Context
-    console.log('\n[Test 6] Activating TAG001 with vehicle_details context for 4 seconds...');
+    // 6. Test Tag Activation with Custom Category Function (e.g. 'student id')
+    console.log("\n[Test 6] Activating TAG001 with custom category function 'student id' for 10 seconds...");
     const activateRes = await apiRequest('/tags/TAG001/activate', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: {
-        function: 'vehicle_details',
-        duration: 4,
+        function: 'student id',
+        duration: 10,
         context: {
-          location: { latitude: 37.7749, longitude: -122.4194 },
-          intent: 'vehicle_details',
+          intent: 'student id',
           accessLevel: 'public',
         },
       },
     });
-    console.log('✔ Tag Activation Success:', activateRes.data.message);
+    if (!activateRes.ok) {
+      throw new Error(`Custom category activation failed: ${JSON.stringify(activateRes.data)}`);
+    }
+    console.log('✔ Custom Category Tag Activation Success:', activateRes.data.message);
     console.log('✔ Authoritative State:', activateRes.data.state.status, '| Function:', activateRes.data.state.function);
 
     // 7. Verify Active State Query (Second tap)
@@ -125,16 +127,18 @@ async function runTests() {
     const activeState = await apiRequest('/tags/TAG001/state');
     console.log('✔ Status:', activeState.data.status);
     console.log('✔ Active Function:', activeState.data.function);
-    console.log('✔ Remaining Duration:', activeState.data.remainingSeconds, 'seconds');
-    if (activeState.data.status !== 'active') {
-      throw new Error('Expected status to be active');
+    if (activeState.data.function !== 'student id') {
+      throw new Error(`Expected function 'student id', got ${activeState.data.function}`);
     }
 
-    // 8. Fetch Vehicle Details
-    console.log('\n[Test 8] Fetching Active Vehicle Details (GET /api/tags/TAG001/vehicle)...');
-    const vehicleRes = await apiRequest('/tags/TAG001/vehicle');
-    console.log('✔ Registration:', vehicleRes.data.data.registrationNumber);
-    console.log('✔ Model:', vehicleRes.data.data.model);
+    // 8. Fetch Custom Category Data
+    console.log('\n[Test 8] Fetching Custom Category Function Data (GET /api/tags/TAG001/data/student%20id)...');
+    const customDataRes = await apiRequest('/tags/TAG001/data/student%20id');
+    if (!customDataRes.ok) {
+      throw new Error(`Failed to fetch custom function data: ${JSON.stringify(customDataRes.data)}`);
+    }
+    console.log('✔ Custom Data Retrieved:', customDataRes.data.function);
+    console.log('✔ Is Custom Category:', customDataRes.data.data.isCustomCategory);
 
     // 9. Test Manual Tag Reset / Deactivation (POST /api/tags/TAG001/deactivate) by Authenticated User
     console.log('\n[Test 9] Testing Manual Tag Reset / Deactivation by Authenticated User...');

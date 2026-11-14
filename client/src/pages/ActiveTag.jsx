@@ -7,6 +7,7 @@ import MedicalViewer from '../components/viewers/MedicalViewer';
 import EmergencyViewer from '../components/viewers/EmergencyViewer';
 import ContactViewer from '../components/viewers/ContactViewer';
 import PersonalViewer from '../components/viewers/PersonalViewer';
+import CustomDocumentViewer from '../components/viewers/CustomDocumentViewer';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import {
@@ -105,11 +106,8 @@ export const ActiveTag = ({ state, tagId, onStateChange }) => {
       case 'personal_information':
         return <PersonalViewer data={data} />;
       default:
-        return (
-          <div className="p-6 text-center text-slate-400">
-            Unsupported active function: {state.function}
-          </div>
-        );
+        // Render custom uploaded document viewer for custom categories (e.g. 'student id')
+        return <CustomDocumentViewer data={data} />;
     }
   };
 

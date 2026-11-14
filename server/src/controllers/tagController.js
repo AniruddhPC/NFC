@@ -295,8 +295,35 @@ const getTagFunctionData = async (req, res) => {
       case 'personal_information':
         data = await PersonalInformation.findOne({ tagId });
         break;
-      default:
-        return res.status(400).json({ message: `Unsupported function '${requestedFunction}'.` });
+      default: {
+        // Handle custom uploaded categories (e.g. 'student id', 'emission', etc.)
+        const Document = require('../models/Document');
+        const customDocs = await Document.find({
+          tagId,
+          category: { $regex: new RegExp(`^${requestedFunction}$`, 'i') },
+        }).sort({ createdAt: -1 });
+
+        if (customDocs && customDocs.length > 0) {
+          data = {
+            isCustomCategory: true,
+            category: requestedFunction,
+            documents: customDocs,
+            primaryDocument: customDocs[0],
+          };
+        } else {
+          // Fallback: check all documents for this tag
+          const allDocs = await Document.find({ tagId }).sort({ createdAt: -1 });
+          if (allDocs && allDocs.length > 0) {
+            data = {
+              isCustomCategory: true,
+              category: requestedFunction,
+              documents: allDocs,
+              primaryDocument: allDocs[0],
+            };
+          }
+        }
+        break;
+      }
     }
 
     if (!data) {
